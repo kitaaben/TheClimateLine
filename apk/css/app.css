@@ -1,0 +1,81 @@
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+#main-content {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.btm-nav {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.nav-active {
+  color: hsl(var(--su)) !important;
+}
+
+.map-container {
+  height: calc(100vh - 12rem);
+  width: 100%;
+  border-radius: var(--radius-box, 0.5rem);
+  overflow: hidden;
+}
+
+.extreme-place {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.freshness-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.frosted {
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius-box, 0.75rem);
+}
+
+.frosted-ice {
+  background: rgba(180,220,255,0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(180,220,255,0.1);
+}
+
+.frosted-text {
+  color: rgba(255,255,255,0.7);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+.timeline {
+  --timeline-col-width: auto;
+}
+
+.trend-line {
+  transition: all 0.3s ease;
+}
+
+@keyframes sk-pulse { 0%,100%{opacity:.3} 50%{opacity:.7} }
+.sk { background:rgba(128,128,128,0.12); border-radius:8px; animation:sk-pulse 1.5s ease-in-out infinite; }
+
+@media (max-width: 640px) {
+  .stat {
+    padding: 0.75rem !important;
+  }
+  .card-body {
+    padding: 1rem !important;
+  }
+  .navbar .text-success {
+    font-size: 1rem !important;
+  }
+}

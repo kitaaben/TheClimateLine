@@ -3,9 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="The Climate Line — Climate science, solutions, and updates.">
-  <title>The Climate Line</title>
+  <meta name="description" content="The Climate Line makes climate science accessible through articles, videos, and audio briefings. Understand climate change, its impacts, and the solutions we can deploy today.">
+  <meta property="og:title" content="The Climate Line — Climate Science, Solutions, and Updates">
+  <meta property="og:description" content="The Climate Line makes climate science accessible through articles, videos, and audio briefings. Understand climate change, its impacts, and the solutions we can deploy today.">
+  <meta property="og:image" content="https://theclimateline.pages.dev/media/hero/hero-1.png">
+  <meta property="og:url" content="https://theclimateline.pages.dev/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="The Climate Line">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="The Climate Line — Climate Science, Solutions, and Updates">
+  <meta name="twitter:description" content="The Climate Line makes climate science accessible through articles, videos, and audio briefings. Understand climate change, its impacts, and the solutions we can deploy today.">
+  <meta name="twitter:image" content="https://theclimateline.pages.dev/media/hero/hero-1.png">
+  <title>The Climate Line — Climate Science, Solutions, and Updates</title>
   <link rel="stylesheet" href="css/style.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "The Climate Line",
+    "url": "https://theclimateline.pages.dev",
+    "description": "Making climate science accessible, one story at a time."
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "The Climate Line",
+    "url": "https://theclimateline.pages.dev",
+    "logo": "https://theclimateline.pages.dev/media/hero/hero-1.png",
+    "sameAs": [
+      "https://www.youtube.com/@theclimateline"
+    ]
+  }
+  </script>
 </head>
 <body>
 
@@ -14,6 +45,7 @@
       <a href="/" class="nav-logo">TheClimateLine</a>
       <div class="nav-right">
         <a href="#articles">Articles</a>
+        <a href="listen.html">Listen</a>
         <a href="#updates">Updates</a>
         <a href="https://www.youtube.com/@theclimateline" target="_blank" rel="noopener">YouTube</a>
       </div>
@@ -45,6 +77,13 @@
     </div>
   </section>
 
+  <div class="audio-bar" id="audioBar">
+    <button class="ab-btn" id="abPrev" aria-label="Previous">&#9664;</button>
+    <button class="ab-btn ab-play-btn" id="abPlay" aria-label="Play">&#9654;</button>
+    <span class="ab-title" id="abTitle">Climate Audio</span>
+    <button class="ab-btn" id="abNext" aria-label="Next">&#9654;&#9654;</button>
+  </div>
+
   <section class="section featured-section" id="articles">
     <div class="section-inner">
       <h2 class="section-title">Articles</h2>
@@ -59,6 +98,20 @@
     </div>
   </section>
 
+  <!-- Video Radio Modal -->
+  <div class="video-radio" id="videoRadio">
+    <div class="video-radio-backdrop" onclick="closeVideoRadio()"></div>
+    <div class="video-radio-content">
+      <div class="video-radio-top">
+        <span class="video-radio-title" id="vrTitle"></span>
+        <span class="radio-indicator">Live</span>
+        <button class="vr-close-btn" onclick="closeVideoRadio()">&times;</button>
+      </div>
+      <div class="video-radio-player" id="vrPlayer"></div>
+      <div class="video-radio-playlist" id="vrPlaylist"></div>
+    </div>
+  </div>
+
   <footer>
     <div class="footer-inner">
       <div class="footer-col">
@@ -68,6 +121,7 @@
       <div class="footer-col">
         <h4>Explore</h4>
         <a href="#articles">Articles</a>
+        <a href="listen.html">Listen</a>
         <a href="#updates">Updates</a>
       </div>
       <div class="footer-col">

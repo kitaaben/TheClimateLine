@@ -1,0 +1,704 @@
+# The Climate Line - App Discussion & Research
+
+## Open-Source Climate Data Sources for the App
+
+### 1. Open-Meteo (Best All-Round - already partially used)
+URL: https://open-meteo.com/
+- No API key required | Free for non-commercial (10K req/day) | CC BY 4.0 | Open-source (AGPLv3)
+- APIs available:
+  - **Weather Forecast API** - up to 16 days, global, 1-2 km resolution
+  - **Historical Weather API** - ERA5 reanalysis from 1940, hourly, gap-free
+  - **Climate API** - CMIP6 models downscaled to 10 km, 1950-2050
+  - **Air Quality API** - PM2.5, PM10, NO2, O3, SO2, CO, dust, UV index, pollen
+  - **Marine API** - wave height/direction/period, sea surface temp, currents
+  - **Flood API** - river discharge (GloFAS), up to 7-month forecast, 5 km res
+  - **Ensemble Mean API**, Geocoding API, Elevation API
+- **Already used** in current site (extreme temperatures section in main.js)
+
+### 2. Earthquakes
+- **USGS Earthquake Catalog API** - https://earthquake.usgs.gov/fdsnws/event/1/
+  - No API key needed | Real-time + historical | Global coverage
+  - Query by magnitude, location, time range, depth, alert level | GeoJSON
+- **TerraQuake API** - open-source Node.js wrapper around seismic data
+
+### 3. Hurricanes / Tropical Storms
+- **NOAA NHC** - Real-time storm tracking, forecast cones, advisories
+- **IBTrACS** - Historical hurricane tracks from 1842 to present
+  - HURDAT2 format: location, wind, pressure, storm size
+  - Download: CSV, GeoJSON from https://www.nhc.noaa.gov/data/#hurdat
+- **NWS API** - Hurricane warnings, watches, alerts | No API key
+
+### 4. Floods
+- **Open-Meteo Flood API** (GloFAS) - river discharge, 5 km res, 30-210 day forecast
+- **Copernicus Global Flood Awareness System** - ensemble forecasts
+
+### 5. Sea Level Rise
+- **NASA JPL Sea Level Portal** - REST API for sea level time series
+- **Copernicus CDS** - Satellite sea level gridded data (1993-present), NetCDF
+- **NASA GMSL Indicator** - Global mean sea level from TOPEX/Jason/Sentinel-6
+
+### 6. Drought
+- **Copernicus Drought Observatory** - WCS service, SPI indicators, CDI
+- **NASA GFWED** - Global Fire WEather Database, Fire Weather Index
+- **Drought.gov** - Processed drought indices, GeoJSON, GeoTIFF
+
+### 7. Wildfires
+- **NASA GFWED** - FWI System fire danger indices (daily, NetCDF)
+- **NIFC Active Wildfire Incidents** - GeoJSON feed of large active fires
+
+### 8. Air Quality
+- **Open-Meteo Air Quality API** (CAMS) - PM2.5, PM10, NO2, O3, SO2, CO, dust, UV, pollen
+- **Copernicus Atmosphere Monitoring Service**
+
+### 9. Marine / Ocean
+- **Open-Meteo Marine API** - waves, sea temp, currents, sea level
+- **AVISO+ / Copernicus Marine** - altimetry, sea level trends
+
+### 10. NOAA NCEI Comprehensive Climate Data
+- **NCEI Data Service API** - No API key required, CSV/JSON/NetCDF
+  - Daily/monthly/annual summaries, 30-year climate normals
+- **NOAA CDO API v2** - Requires free token, 5 req/s, 10K/day
+  - Datasets: GHCND (daily), GSOM (monthly), GSOY (yearly), NORMALS, STORM_EVENTS, PRECIP
+
+### 11. National Weather Service (NWS)
+- **NWS API** - https://api.weather.gov/
+  - Forecasts, observations, alerts | No API key | US public domain
+
+### 12. Specialized / Research Platforms
+- CLIMADA (ETH Zurich) - climate risk assessment data API
+- Climate Engine / Drought.gov - processed drought indices
+- PSE (Planetary Sensing Engine) - open-source Earth observation fusion
+- ERA5 via Copernicus CDS - free registration, full reanalysis
+- World Bank Climate Data API - country-level climate indicators
+- NASA Earth Observations (NEO) - satellite imagery, global datasets
+- OpenAQ - global air quality data, open-source
+
+---
+
+# App Vision & Architecture (Discussed Jun 3 2026)
+
+## Core Concept
+An offline-capable PWA that tracks extreme climate events in real-time, ranks cities by daily extremes, and gives users personalized safety advice — all using free open-source data.
+
+## App Features (Prioritized)
+
+### Rankings & Extremes (Daily Updated)
+- Hottest city today (Open-Meteo Forecast, query 200 cities)
+- Coldest city today
+- Windiest city today
+- Most flood risk (Open-Meteo Flood API)
+- Angry oceans / highest waves (Open-Meteo Marine API)
+- Highest/lowest in history for any city (Open-Meteo Historical ERA5, 1940-present)
+
+### Event Feed
+- Chronological feed of extreme climate events
+- Cross-validated: news mention + actual measurement side-by-side
+- Sources: USGS earthquakes, NHC hurricanes, NWS alerts, Open-Meteo thresholds
+
+### Interactive Map
+- Leaflet.js (free, no API key)
+- Geo-tagged events from all sources
+- Click for pinpoint data: temp, wind, alerts, historical records
+
+### Trending Searches
+- Google Trends data via trendspyg (free RSS)
+- Shows what climate topics are spiking globally
+
+### Safety Advice
+- Static cards triggered by thresholds (e.g., temp > 40°C → heatwave safety)
+- Heatwave, flood, storm, cold, air quality categories
+
+### Personal Location
+- Browser geolocation → auto-show conditions for user's city
+- Manual search by city name
+
+## Architecture
+
+### Folder Structure
+```
+theclimateline-app/
+├── index.html              ← SPA shell (hash-based routing)
+├── manifest.json           ← PWA installable manifest
+├── sw.js                   ← Service Worker (offline caching)
+├── css/
+│   ├── style.css           ← Existing (keep)
+│   └── app.css             ← New: map, feed, alerts, dashboard, mobile
+├── js/
+│   ├── config.js           ← API endpoints, 200-city database, constants
+│   ├── data/
+│   │   ├── open-meteo.js   ← Weather, flood, marine, air quality
+│   │   ├── usgs.js         ← Earthquakes (live feed)
+│   │   ├── nhc.js          ← Hurricanes / tropical storms
+│   │   ├── trends.js       ← Google Trends (trending searches)
+│   │   └── alerts.js       ← NWS alerts + GDACS disasters
+│   ├── ui/
+│   │   ├── app.js          ← App shell, navigation, routing
+│   │   ├── map.js          ← Interactive map (Leaflet.js)
+│   │   ├── feed.js         ← Event feed (latest climate events)
+│   │   ├── dashboard.js    ← Stats overview (active events, temps, etc.)
+│   │   └── safety.js       ← Safety advice cards
+│   ├── utils/
+│   │   ├── geo.js          ← Geo utilities, distance calc
+│   │   ├── format.js       ← Date, number formatting
+│   │   └── cache.js        ← IndexedDB caching layer with TTL
+│   ├── articles.js         ← Existing (keep)
+│   ├── media-list.js       ← Existing (keep)
+│   ├── channel-videos.js   ← Existing (keep)
+│   └── main.js             ← Existing (update to bootstrap app)
+└── articles/               ← Keep all existing article pages
+```
+
+### Routes
+| Route | View | Data Sources |
+|-------|------|-------------|
+| `#/dashboard` | Live extremes + map + stats | All sources |
+| `#/feed` | Chronological event feed | USGS + NHC + NWS + thresholds |
+| `#/trending` | Spiking climate searches | Google Trends |
+| `#/map` | Full-screen interactive map | All geo-tagged events |
+| `#/safety` | Safety advice by condition | Static cards + current conditions |
+| `#/city?lat=X&lon=Y` | Pinpoint: all data for a location | All sources |
+| `#/articles` | Existing articles | Existing articles.js |
+
+### Offline / PWA Strategy
+- Service Worker caches app shell (HTML, CSS, JS, images)
+- IndexedDB stores last API responses with TTL per source
+- On load: if online → fetch fresh, update cache, re-render
+- If offline → serve from IndexedDB, show "Last updated" indicator
+- Installable on phone home screen via manifest.json
+
+### City Database
+- 200 cities with lat/lon for instant rankings
+- Pre-populated static file, no API needed
+
+### Safety Advice System
+- Static cards triggered by weather thresholds
+- Categories: heatwave (>40°C), cold (<-10°C), storm (wind >80km/h), flood, poor air
+- Shows actionable survival steps (CDC/WHO guidelines)
+
+## Funding & Sustainability Strategy
+
+### Income Model
+1. Phase 1 (immediate): Ko-fi / GitHub Sponsors / OpenCollective
+2. Phase 2 (3-6 months): Grants
+3. Phase 3 (future): Sponsorship banner, premium API access for businesses, affiliate links
+
+### Grants: Open Right Now (June 2026)
+| Grant | Amount | Deadline | Fit |
+|-------|--------|----------|-----|
+| Code Supply (NLnet EU) | €5K-€50K | Aug 1, 2026 | Open-source climate app — BEST FIT |
+| ECMWF Code for Earth | Financial | Open | Weather/climate open-source dev |
+| Human Impacts Fellowship | $1,000 | Jul 1, 2026 | Virtual climate storytelling |
+| OpenClimate.fund | €100 | Ongoing | List project on OpenSustain.tech |
+| Research Council Norway | NOK 50K-300K | Open-ended | Climate communication |
+
+### Grants: Upcoming Cycles
+| Grant | Amount | Note |
+|-------|--------|------|
+| Youth Climate Justice Fund | Up to $40K | Likely reopens early 2027 |
+| UNICEF Venture Fund | Up to $100K | Climate-tech open-source |
+| EPA Environmental Education | Up to $100K | Annual cycle |
+| Agog Climate + Media | $25K-$200K | Needed US entity/fiscal sponsor |
+
+### Key Principle
+App stays 100% free for users. No paywall. Income comes from grants + donations + optional business tier.
+
+## Completely Free Data Sources (No Paid APIs)
+| Source | What | Key Needed? |
+|--------|------|-------------|
+| Open-Meteo | Weather, climate, flood, marine, air | No |
+| USGS Earthquakes | Seismic events | No |
+| NOAA NHC | Hurricanes | No |
+| NWS | Alerts, forecasts | No |
+| IBTrACS | Hurricane history | No |
+| Google Trends (RSS) | Trending searches | No |
+| Leaflet.js | Maps | No |
+| NASA FIRMS | Wildfires | Free signup |
+| FEMA Disasters | Disaster declarations | No |
+
+---
+
+# Transparency & Audit System
+
+## Core Principle
+Every data point shown to the user is verifiable back to its original source. No black box. No hidden transformation.
+
+## Transparency Layer — Per-Data Point
+
+### Source Badge
+- Each card/value shows its source: `Open-Meteo ERA5` / `USGS` / `NOAA NHC` / `NWS`
+- Badge is clickable → links to the API's official documentation page
+- Example: *"Honolulu: 50°C"* → badge `Open-Meteo` → link to open-meteo.com/docs
+
+### Freshness
+- `Updated 12 min ago` displayed on every card
+- Exact UTC fetch timestamp available on click
+- If data is stale (beyond TTL), card dims and shows `Cached — last updated 2h ago`
+
+### Raw Value Inspector
+- Click "View raw" → shows the exact JSON/GeoJSON the API returned
+- No processing, no rounding, no interpretation — the source truth
+- User can copy the API URL and verify directly in their browser
+
+### Confidence / Resolution
+- Weather data shows model resolution (e.g., "1 km grid" vs "11 km grid")
+- Earthquake data shows magnitude uncertainty (±0.2)
+- Flood data shows the ensemble member count (e.g., "51-model ensemble")
+- Hurricane data shows the forecast hour and model name (e.g., "NHC HWRF, 24h forecast")
+
+## Audit Trail — For Every Claim
+
+### Click-to-Verify Flow
+1. User sees a value (e.g., "Hottest city: Ahvaz 49°C")
+2. Clicks the value or badge
+3. Panel slides open showing:
+   - Source name and API endpoint URL
+   - Exact coordinate queried
+   - Raw JSON response
+   - Time of fetch
+   - Any processing applied (e.g., unit conversion °F→°C)
+4. User can copy the full API URL to verify independently
+
+### Historical Records
+- "Highest in history" links to the full ERA5 time series for that location
+- User can browse the raw historical data (1940–present) in a chart
+- Source: Open-Meteo Historical API, directly queried
+
+## Cross-Validation
+
+### Multi-Source Comparison
+When multiple sources cover the same metric, show both:
+- Temperature: Open-Meteo (model) vs nearby station (NOAA NCEI) — side by side
+- Hurricane: NHC advisory vs IBTrACS historical track — overlay on map
+- Earthquake: USGS vs EMSC (European-Mediterranean) — both magnitudes shown
+
+### News + Data Cross-Check
+If GDELT or trends detect an event (e.g., "Heatwave in Spain"), the app fetches actual measurements from Open-Meteo for that location and shows:
+- News headline (source: GDELT / Trends)
+- Actual measured temperature (source: Open-Meteo)
+- "The report matches the data" / "The data shows a different magnitude"
+
+## Open-Source Guarantee
+
+### Full Code Transparency
+- All code is public on GitHub
+- No API keys, no secrets, no hidden transforms
+- Community can audit every data processing step
+- Build: `npm run build` produces exactly the files served
+
+### No Middleman Architecture
+```
+API (Open-Meteo/USGS/NHC)
+  │
+  ▼
+Browser ← index.html + JS (open source)
+  │
+  ▼
+User sees the data
+```
+- No server-side transformation, no proprietary enrichment
+- What the API returns is what the user sees (formatted for readability only)
+
+### Data Provenance
+- Every chart, map, and card includes provenance metadata in the DOM
+- Power users can inspect the DOM to find: `data-source`, `data-fetch-time`, `data-endpoint`, `data-raw-url`
+- Machine-readable: all values are also exposed via a `window.__climateData` object for developers
+
+## Visual Indicators in UI
+
+| Indicator | Meaning |
+|-----------|---------|
+| Green badge | Live data, fetched within TTL |
+| Yellow badge | Cached data (offline or API unavailable) |
+| Red badge | Stale data beyond TTL — fetch failed |
+| Click badge → link | "Verify at source.gov" |
+| "Raw" button | Show raw JSON response |
+| "Sources" dropdown | Multiple sources for same metric |
+
+---
+
+# UI/UX Stack (Zero Build Tools, All CDN)
+
+## Core CSS Framework — DaisyUI 5 + Tailwind
+```html
+<link href="https://cdn.jsdelivr.net/npm/daisyui@5/daisyui.css" rel="stylesheet">
+```
+- One CSS file (34KB compressed) = Tailwind utilities + 30+ DaisyUI components
+- No build step, no npm, no config
+- 30+ themes via `data-theme="forest"` (perfect for climate app)
+- Components: cards, badges, stats, alerts, modals, navbar, timeline, tabs, loading spinners, progress bars
+
+## Animations — Animate.css
+```html
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+```
+- Usage: `class="animate__animated animate__fadeInUp"`
+- Smooth entrance animations for cards, sections, alerts
+- Tiny footprint
+
+## Charts — Chart.js
+```html
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+```
+- Temperature history line charts
+- Air quality gauge charts
+- Wind speed/direction charts
+- Interactive, responsive, free
+
+## Maps — Leaflet.js
+```html
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+```
+- Free, no API key
+- Interactive map with all event markers
+- Click any marker → show pinpoint data
+
+## Recommended DaisyUI Theme
+`data-theme="forest"` — dark green nature theme, perfect for a climate app.
+Alternatives: `dark`, `coffee`, `emerald`, `night`
+
+---
+
+# Offline / PWA Strategy
+
+## Core Principle
+The app is a fully offline-capable PWA. Everything except fresh data is downloaded once and cached permanently.
+
+## Service Worker Caching Strategy
+
+### Cache Categories
+
+| Cache Name | What It Stores | Strategy | Persistence |
+|------------|---------------|----------|-------------|
+| `app-shell-v1` | index.html, all JS, all CSS, manifest.json | Cache-First (install event) | Permanent |
+| `framework-v1` | DaisyUI, Animate.css, Chart.js, Leaflet CSS+JS | Cache-First (install event) | Permanent |
+| `map-tiles-v1` | Leaflet map tiles for frequently viewed areas | Cache-While-Revalidate | 30 days |
+| `api-v1` | Open-Meteo, USGS, NHC API responses | Network-First → Cache fallback | Per TTL |
+
+### Install Event — Pre-cache Everything
+```javascript
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open('app-shell-v1').then(cache =>
+      cache.addAll([
+        '/',
+        '/index.html',
+        '/js/config.js',
+        '/js/data/open-meteo.js',
+        '/js/data/usgs.js',
+        '/js/data/nhc.js',
+        '/js/data/trends.js',
+        '/js/data/alerts.js',
+        '/js/ui/app.js',
+        '/js/ui/map.js',
+        '/js/ui/feed.js',
+        '/js/ui/dashboard.js',
+        '/js/ui/safety.js',
+        '/js/utils/geo.js',
+        '/js/utils/format.js',
+        '/js/utils/cache.js',
+        '/css/style.css',
+        '/css/app.css',
+      ])
+    )
+  );
+  event.waitUntil(
+    caches.open('framework-v1').then(cache =>
+      cache.addAll([
+        'https://cdn.jsdelivr.net/npm/daisyui@5/daisyui.css',
+        'https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css',
+        'https://cdn.jsdelivr.net/npm/chart.js',
+        'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+        'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+      ])
+    )
+  );
+});
+```
+
+### Fetch Event — Data Strategy
+```javascript
+self.addEventListener('fetch', event => {
+  // API requests: network first, fall back to cache
+  if (event.request.url.includes('api.open-meteo.com') ||
+      event.request.url.includes('earthquake.usgs.gov')) {
+    event.respondWith(networkFirstWithCache(event.request));
+    return;
+  }
+  // All other requests: cache first (app shell, framework, tiles)
+  event.respondWith(cacheFirst(event.request));
+});
+```
+
+## Offline Data Flow
+
+```
+User Opens App
+       │
+       ▼
+Service Worker serves cached HTML/CSS/JS (instant, offline)
+       │
+       ▼
+App checks IndexedDB for each data source:
+  ├── Data exists and within TTL → show immediately (green badge)
+  ├── Data exists but expired → show (yellow badge), fetch fresh in background
+  └── No data → show "No data yet" with retry button
+       │
+       ▼
+If online → fetch all APIs in parallel, update IndexedDB, re-render
+If offline → show cached data with "Last updated X ago" indicator
+```
+
+## IndexedDB Data Schema
+
+| Store | Key | Data | TTL |
+|-------|-----|------|-----|
+| `weather` | City name | { temp, wind, humidity, ... } + fetchTime | 30 min |
+| `extremes` | "hottest" / "coldest" / "windiest" | { rank: [...], fetchTime } | 60 min |
+| `earthquakes` | "latest" | { features: [...], fetchTime } | 5 min |
+| `hurricanes` | "active" | { storms: [...], fetchTime } | 30 min |
+| `trends` | "trending" | { terms: [...], fetchTime } | 60 min |
+| `alerts` | "active" | { alerts: [...], fetchTime } | 10 min |
+| `map-tiles` | Tile URL | Blob image data | 30 days |
+
+## App Update Flow
+
+### Silent Background Refresh
+```
+Every 5 minutes (if online):
+  1. Fetch all data sources in parallel (Promise.all)
+  2. Compare with cached values
+  3. If changed → update IndexedDB, update UI without user noticing
+  4. Update "Last updated" timestamps
+```
+
+### User-Facing Indicators
+| State | UI |
+|-------|-----|
+| Loading fresh data | Skeleton cards (DaisyUI loading spinners) |
+| Data loaded (online) | Green dot + "Updated 2 min ago" |
+| Data loaded (offline) | Yellow dot + "Offline — last updated 2h ago" |
+| Stale data (>2x TTL) | Red dot + swipe-to-refresh prompt |
+
+## PWA — Installable on Home Screen
+
+### manifest.json
+```json
+{
+  "name": "The Climate Line",
+  "short_name": "ClimateLine",
+  "description": "Real-time extreme climate event tracker",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0d14",
+  "theme_color": "#1a8a3f",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
+```
+
+### Link in HTML
+```html
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1a8a3f">
+```
+
+## What Works Offline vs Requires Internet
+
+### Works 100% Offline (Cached)
+- App shell (HTML, CSS, JS)
+- All UI framework assets (DaisyUI, Animate.css, Chart.js, Leaflet)
+- Map tiles (previously viewed areas)
+- All images and icons
+- Article pages
+- City database (200 cities)
+- Safety advice cards
+- All-time historical records (pre-computed)
+
+### Requires Internet (Fresh Data)
+| Source | App Feature | Without Internet |
+|--------|-------------|-----------------|
+| Open-Meteo | Today's temps, wind, flood, marine | Shows last cached values |
+| USGS | Earthquake feed | Shows last known quakes |
+| NHC | Hurricane tracks | Shows last known storms |
+| NWS | Weather alerts | Shows last known alerts |
+| Google Trends | Trending searches | Shows last known trends |
+
+### Graceful Degradation
+- If 5+ minutes offline: yellow badge everywhere
+- If 30+ minutes offline: red badge with "Swipe to retry"
+- If no data was ever fetched: empty state with "Connect to internet to get started"
+
+## Predictive Feature — Temperature Trend Analysis & Projections
+
+### Goal
+Show users year-over-year temperature trends, deltas vs historical baselines, and future projections — all from free client-side APIs, no backend.
+
+### Three Prediction Tiers (All Free, No Backend)
+
+#### Tier 1: Year-over-Year Comparison (Simplest, Most Impactful)
+For each city, query **Open-Meteo Historical API** (ERA5, 1940-present) for the same date range across 3+ years. Show:
+- Bar/line chart: "May 1-31 temperature comparison across 2023, 2024, 2025, 2026"
+- Delta badge: "This year is 2.1°C hotter than the 3-year average"
+- Hot/cold days count: "Days above 40°C: 2023: 3, 2024: 5, 2025: 8, 2026: 12 → trendline pointing up"
+- 30-day rolling average vs historical baseline (1961-1990 normals)
+- Anomaly score: "Current temp is 2.8σ above the historical norm"
+- Trend direction arrow: Upward with "Temperatures rising — consistent with 5-year trend"
+
+#### Tier 2: CMIP6 Climate Model Projections via Open-Meteo Climate API
+Free, no key, CORS-enabled — gives actual IPCC-class climate projections from **1950 to 2050** at 10 km resolution.
+- "Your city's warming trajectory since 1950"
+- "By 2040, summer highs are projected to reach 47°C"
+- 7 climate models available: CMCC_CM2_VHR4, FGOALS_f3_H, HiRAM_SIT_HR, MRI_AGCM3_2_S, EC_Earth3P_HR, MPI_ESM1_2_XR, NICAM16_8S
+- Bias-corrected against ERA5-Land by default
+- Data is immutable (future projections don't change) → fetched once, cached permanently in IndexedDB
+- Works offline after first fetch
+
+#### Tier 3: Technical Analysis-style Indicators (Client-Side JS)
+- Moving averages (7-day, 30-day) from Historical API data
+- Anomaly detection: σ-based flags ("Extreme heat event: +3.2σ from norm")
+- Trend line fitting (simple linear regression in JS)
+- "This week vs same week last year" comparison
+
+### Data Flow
+```
+Open-Meteo Historical API (ERA5, 1940-present)
+  → Fetch last 3 years + current year for user's city
+  → Store in IndexedDB (offline available with TTL)
+  → Calculate deltas, trends, anomaly scores in JS
+  → Render Chart.js comparison charts
+
+Open-Meteo Climate API (CMIP6, 1950-2050)
+  → Fetch once per city (projections are static)
+  → Cache permanently in IndexedDB (never expires)
+  → Show "Projected warming" trend chart
+  → Multi-model ensemble mean ± spread
+```
+
+### Offline Strategy for Predictions
+| Data Type | Cache Strategy | Works Offline? |
+|-----------|---------------|----------------|
+| Historical temps (past years) | IndexedDB, 24h TTL | ✅ Yes (yesterday's data) |
+| Year-over-year comparisons | IndexedDB, computed & cached | ✅ Yes |
+| CMIP6 projections (1950-2050) | IndexedDB, permanent | ✅ Yes forever |
+| Current year temps | IndexedDB, 30min TTL | ✅ Yes (stale, yellow badge) |
+
+### Free Open-Source Prediction Options Evaluated
+| Option | What It Predicts | Browser? | Why We Chose/Passed |
+|--------|-----------------|----------|---------------------|
+| **Open-Meteo Climate API (CMIP6)** | Temp, precip, wind to 2050 | ✅ Direct HTTP | Free, no key, scientifically credible, already in stack |
+| **Client-side trend analysis** | Year-over-year deltas, moving avg, anomalies | ✅ Pure JS | No extra service, uses Historical API we already fetch |
+| **FaIR** (simple climate emulator) | Global mean temp from emissions | ❌ Python only | Needs backend server, contradicts zero-backend rule |
+| **Microsoft Aurora** (ML foundation model) | Weather, air, waves | ❌ Python+GPU | 500MB+ model, heavy server, overkill for our use case |
+| **TensorFlow.js** | Custom ML in browser | ✅ Possible | Too complex — needs training pipeline, no training data source |
+| **scikit-learn / statsmodels** | Statistical forecasting | ❌ Python only | Needs backend, adds no value over simple JS math for moving averages |
+
+### Charts & Visualization
+- **Year-over-Year Bar Chart** (Chart.js): Grouped bars for each year, same date range
+- **Projected Warming Line Chart** (Chart.js): 1950-2050 trend with ensemble spread
+- **Monthly Anomaly Heatmap**: Grid of monthly temperature deltas vs 1961-1990 baseline
+- **Hot Days Count**: Incremental bar chart showing days above threshold by year
+
+### Impact Projection Statements (Trend → Consequence)
+
+#### Core Concept
+Convert raw temperature data into **time-bound, consequence-driven statements** that answer: *"If this keeps happening, what will actually happen to me?"*
+
+**Format:**
+```
+[Condition from data] + [Duration] → [Real-world consequence] by [Year]
+Examples:
+  "43°C summers for 3 more years → crop failure by 2029, food shortages"
+  "Max temp rising 0.6°C/year → 47°C by 2028 → heatwave fatalities 5x current"
+  "30+ days above 40°C for 3 consecutive years → uninhabitable by 2030"
+```
+
+#### How Projections Are Computed (Client-Side JS)
+1. **Annual max temp trend**: Linear regression over last 5 years of ERA5 max temps → slope °C/year
+2. **Hot days trend**: Count days > 35°C / 40°C / 43°C by year → projected +2 years
+3. **Compound heat**: Consecutive hot days (3+ days > 40°C) → "heatwave duration trend"
+4. **CMIP6 alignment**: Cross-check with 2040 projection from Climate API
+
+#### Trigger Thresholds & Impact Statements
+
+| Threshold Trend | Duration | Impact Statement | Category |
+|-----------------|----------|-----------------|----------|
+| Max temp > 40°C annually | 3 consecutive years | "If 40°C+ summers continue for 3 more years, heatstroke ER visits projected to double by [year+2]" | Health |
+| Max temp > 43°C annually | 3 consecutive years | "Crop yield loss >60% within 3 years → local food shortages by [year+3]" | Food |
+| Max temp > 45°C annually | 2 consecutive years | "Infrastructure failure risk: roads buckle, rail lines warp, power grid overload by [year+2]" | Infrastructure |
+| Hot days (>40°C) increasing 5+/year | 4 consecutive years | "At this rate, [city] will experience 60+ dangerously hot days per year by 2035 — current: [X]" | Health |
+| Min temp (nights) > 30°C | 3 consecutive years | "No overnight relief → mortality rates rise 15% in vulnerable populations by [year+2]" | Health |
+| Temp rising > 0.5°C/decade | 10-year trend | "If warming accelerates at 0.5°C/decade, [city] exceeds IPCC 2°C threshold by 2045" | Global |
+| Annual precipitation down 30%+ | 3 consecutive years | "Drought conditions → water rationing mandatory by [year+2]; agricultural collapse by [year+3]" | Water |
+| Combined: 43°C+ days + no rain 60+ days | 2 consecutive summers | "Compound drought-heat event: crop failure + water shortage → food imports critical by [year+2]" | Food+Water |
+| Coastal city + sea level + extreme heat | Both rising for 5+ years | "Compound threat: heat stress + storm surge risk + saltwater intrusion into groundwater by 2035" | Multi |
+| Max temp rising 0.6°C+/year | 3 consecutive years | "If warming accelerates at [X]°C/year, [city] tracks toward uninhabitable wet-bulb thresholds by 2040" | Habitability |
+
+#### Dynamic Statement Generator
+
+```
+Input:
+  - trendSlope (annual max temp change rate, °C/year)
+  - hotDaysByYear [{year, daysAbove40, daysAbove43}]
+  - consecutiveHotYears (count)
+  - currentMaxTemp
+  - cmip6Projection2040
+
+Logic:
+  for each threshold in IMPACT_MATRIX[]:
+    if trendSlope >= threshold.slopeMin
+       && consecutiveHotYears >= threshold.durationMin:
+         extrapolate yearReached
+         pick consequence template
+         generate: "If current trend continues, [consequence] by [yearReached]"
+
+Output:
+  - "If 43°C summers persist for 3 more years → crop failure by 2029"
+  - Severity: moderate / severe / critical
+  - Confidence: medium / high (based on R² of trend + years of data)
+  - Data backing: link to raw Historical API data used
+```
+
+#### UI Presentation
+- **Projection Card**: High-contrast alert-style card (red/orange border)
+- **Statement**: Bold, human-readable, scannable
+- **Timeline visual**: Simple progress bar showing "Now → [yearReached]"
+- **Confidence badge**: "High confidence (5-year trend, R²=0.89)" or "Medium confidence (3-year trend)"
+- **Data button**: Click → show raw trend data + regression line chart
+- **Multiple statements**: Sorted by severity, most critical first
+- **Update frequency**: Recalculated every time new Historical API data arrives
+
+#### Example Outputs for Real Cities
+
+| City | Current Trend | Projected Statement |
+|------|--------------|-------------------|
+| Ahvaz, Iran | +0.7°C/year, 4 years > 45°C | "If 45°C+ summers continue, Ahvaz may become uninhabitable for 4+ months per year by 2032" |
+| Phoenix, USA | +0.5°C/year, 30+ days > 40°C | "300+ heat fatalities per year projected by 2030 if current warming rate continues" |
+| Jakarta, Indonesia | +0.3°C/year + sea level rise | "Compound threat: extreme heat + flooding → 2M+ at risk of displacement by 2040" |
+| Paris, France | +0.4°C/year, 3 years > 40°C | "If 40°C summers become normal, 85% of buildings without AC become uninhabitable by 2035" |
+| Delhi, India | +0.55°C/year, 20+ days > 43°C | "60+ days above 43°C by 2030 → crop yield -50%, water demand +40% simultaneously" |
+
+#### Offline Behavior
+- Impact statements are computed from cached Historical API data → work fully offline
+- No external calls needed for statement generation
+- "Last computed" timestamp shown (e.g., "Projection based on data from June 2026")
+
+### API Endpoint Examples
+**Historical comparison (current year vs last 3 years):**
+```
+https://archive-api.open-meteo.com/v1/archive?latitude=35.68&longitude=51.42&start_date=2023-05-01&end_date=2023-05-31&daily=temperature_2m_max&timezone=auto
+```
+Repeat for 2024, 2025, 2026 — then compare in Chart.js.
+
+**Climate projection (1950-2050):**
+```
+https://climate-api.open-meteo.com/v1/climate?latitude=35.68&longitude=51.42&start_date=1950-01-01&end_date=2050-01-01&daily=temperature_2m_max&models=CMCC_CM2_VHR4,EC_Earth3P_HR,MPI_ESM1_2_XR
+```
+
+## Grant Application Priority
+1. Code Supply (€5K-€50K) — best fit, deadline Aug 1
+2. OpenClimate.fund (€100) — quick win, do today
+3. Human Impacts Fellowship ($1K) — deadline Jul 1
+4. ECMWF Code for Earth — open-source climate dev

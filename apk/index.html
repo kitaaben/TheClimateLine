@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="forest">
+<head>
+  <script>try{if(sessionStorage.getItem('fromSplash')!='1'&&!location.pathname.endsWith('splash.html')){fetch('splash.html',{method:'HEAD'}).then(function(r){if(r.ok)location.replace('splash.html')}).catch(function(){})}}catch(e){}</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1a8a3f">
+  <title>The Climate Line</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+  <link rel="stylesheet" href="css/daisyui.css">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <div class="navbar bg-base-200 border-b border-base-300" style="padding-left:1rem;padding-right:1rem">
+    <div class="navbar-start">
+      <span class="text-success" style="font-size:1.5rem"><span style="font-weight:400">THE</span> <span style="font-weight:800">CLIMATELINE</span></span>
+    </div>
+    <div class="navbar-end">
+      <button class="btn btn-ghost btn-sm btn-square">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="hotGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:0 1rem;margin-top:16px"><div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div class="sk" style="width:100%;border-radius:9999px;padding:14px 0">&nbsp;</div><div class="sk" style="width:30px;height:10px;border-radius:4px">&nbsp;</div></div><div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div class="sk" style="width:100%;border-radius:9999px;padding:14px 0">&nbsp;</div><div class="sk" style="width:30px;height:10px;border-radius:4px">&nbsp;</div></div><div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div class="sk" style="width:100%;border-radius:9999px;padding:14px 0">&nbsp;</div><div class="sk" style="width:30px;height:10px;border-radius:4px">&nbsp;</div></div><div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div class="sk" style="width:100%;border-radius:9999px;padding:14px 0">&nbsp;</div><div class="sk" style="width:30px;height:10px;border-radius:4px">&nbsp;</div></div><div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div class="sk" style="width:100%;border-radius:9999px;padding:14px 0">&nbsp;</div><div class="sk" style="width:30px;height:10px;border-radius:4px">&nbsp;</div></div></div>
+
+  <div id="timelineSection" class="bg-base-200" style="padding:16px;margin:24px 16px 0;border-radius:12px"><div style="text-align:center"><div class="sk" style="width:120px;height:12px;margin:0 auto 16px;border-radius:6px">&nbsp;</div><div style="display:flex;gap:8px;justify-content:center"><div class="sk" style="flex:1;height:60px;border-radius:6px">&nbsp;</div><div class="sk" style="flex:1;height:60px;border-radius:6px">&nbsp;</div><div class="sk" style="flex:1;height:60px;border-radius:6px">&nbsp;</div><div class="sk" style="flex:1;height:60px;border-radius:6px">&nbsp;</div><div class="sk" style="flex:1;height:60px;border-radius:6px">&nbsp;</div></div></div></div>
+
+  <div id="beachSection" style="padding:16px;margin:24px 16px 0;border-radius:12px;background:rgba(147,197,253,0.25)"><div style="text-align:center"><div class="sk" style="width:80px;height:12px;margin:0 auto 16px;border-radius:6px">&nbsp;</div><div class="sk" style="width:160px;height:36px;margin:0 auto;border-radius:6px">&nbsp;</div></div></div>
+
+  <div id="youtubeSection" class="bg-base-200" style="padding:16px;margin:24px 16px 0;border-radius:12px"><div style="display:flex;gap:8px"><div class="sk" style="flex:1;aspect-ratio:16/9;border-radius:8px">&nbsp;</div><div class="sk" style="flex:1;aspect-ratio:16/9;border-radius:8px">&nbsp;</div><div class="sk" style="flex:1;aspect-ratio:16/9;border-radius:8px">&nbsp;</div><div class="sk" style="flex:1;aspect-ratio:16/9;border-radius:8px">&nbsp;</div></div></div>
+
+  <div id="updatesSection" class="bg-base-200" style="padding:16px;margin:24px 16px 16px;border-radius:12px"><div style="display:flex;flex-direction:column;gap:8px"><div class="sk" style="height:52px;border-radius:8px">&nbsp;</div><div class="sk" style="height:52px;border-radius:8px">&nbsp;</div><div class="sk" style="height:52px;border-radius:8px">&nbsp;</div></div></div>
+
+  <main id="main-content" class="flex-1"></main>
+
+  <script src="js/config.js"></script>
+  <script>
+    var hotCities = [];
+
+    var inflight = {};
+    var CACHE_TTL = 14400000;
+
+    function fetchTimeout(url, ms) {
+      if (ms === undefined) ms = 10000;
+      try {
+        var controller = new AbortController();
+        var id = setTimeout(function() { controller.abort(); }, ms);
+        return fetch(url, { signal: controller.signal }).then(function(r) { clearTimeout(id); if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).catch(function(e) { clearTimeout(id); throw e; });
+      } catch(e) {
+        return fetch(url).then(function(r) { if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
+      }
+    }
+
+    function cachedFetch(key, url, ttlMs) {
+      if (inflight[key]) return inflight[key];
+      var cached = null, cachedTs = 0;
+      try { var raw = localStorage.getItem(key); if (raw) { var p = JSON.parse(raw); cached = p.data; cachedTs = p.ts; } } catch(e) {}
+      if (cached !== null) {
+        if (Date.now() - cachedTs >= ttlMs) {
+          inflight[key] = fetchTimeout(url).then(function(data) { try { localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data })); } catch(e) {} return data; }).catch(function(e) { console.warn('Background refresh failed:', e.message); return cached; });
+          inflight[key].finally(function() { delete inflight[key]; });
+        }
+        return Promise.resolve(cached);
+      }
+      inflight[key] = fetchTimeout(url).catch(function(e) { console.warn('Fetch failed, trying stale cache:', e.message); try { var stale = localStorage.getItem(key); if (stale) return JSON.parse(stale).data; } catch(e) {} throw e; });
+      inflight[key] = inflight[key].then(function(data) { try { localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data })); } catch(e) {} return data; });
+      inflight[key].finally(function() { delete inflight[key]; });
+      return inflight[key];
+    }
+
+    function saveCache(key, data) {
+      try { localStorage.setItem('c_' + key, JSON.stringify({ ts: Date.now(), data })); } catch(e) {}
+    }
+
+    function loadCache(key, ttlMs) {
+      if (ttlMs === undefined) ttlMs = CACHE_TTL;
+      try { var r = JSON.parse(localStorage.getItem('c_' + key)); if (r && Date.now() - r.ts < ttlMs) return r.data; } catch(e) {}
+      return null;
+    }
+
+    function getCached(key) { try { var r = JSON.parse(localStorage.getItem('c_' + key)); if (r && r.data) return r; } catch(e) {} return null; }
+    function setCached(key, data) { try { localStorage.setItem('c_' + key, JSON.stringify({ ts: Date.now(), data })); } catch(e) {} }
+
+    function loadHealthTips(maxTemp) {
+      if (maxTemp == null || !isFinite(maxTemp)) return '';
+      const isHot = maxTemp >= 35;
+      const tips = isHot ? [
+        'Drink water regularly, even if not thirsty',
+        'Avoid going outside during the hottest part of the day',
+        'Cool the body with cold water compresses or showers',
+        'Watch for heat stroke: confusion, rapid pulse, nausea',
+        'Stay in the shade or air-conditioned spaces',
+        'Never leave people or pets in parked vehicles',
+        'Wear light, loose-fitting clothing and a hat',
+        'Reduce physical activity and rest frequently',
+        'Help neighbours and family who may need assistance',
+        'Eat light meals and avoid hot, heavy food',
+      ] : [
+        'Wear multiple thin layers — air between layers insulates',
+        'Cover head, hands, and feet — most heat is lost there',
+        'Drink warm fluids, avoid alcohol and caffeine',
+        'Seek shelter and warm space if shivering persists',
+        'Eat warm, high-energy meals regularly',
+        'Check on elderly and vulnerable neighbours',
+        'Keep moving — gentle activity generates body heat',
+        'Seal windows and doors to prevent drafts',
+        'Know the signs of frostbite: numbness, pale skin',
+        'Keep a supply of warm blankets and extra clothing',
+      ];
+      const idx = (maxTemp * 7 + 13) % tips.length;
+      const color = isHot ? '#dc2626' : '#3b82f6';
+      const source = isHot
+        ? 'World Health Organization — heat and health'
+        : 'World Health Organization — cold weather guidance';
+      const url = isHot
+        ? 'https://www.who.int/news-room/fact-sheets/detail/climate-change-heat-and-health'
+        : 'https://www.who.int/publications/i/item/9789240039430';
+      const textColor = isHot ? '#dc2626' : '#333';
+      return `<div style="margin-top:10px;padding:10px 12px;background:rgba(74,222,128,0.15);border-radius:8px">
+        <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;color:rgba(0,0,0,0.5);margin-bottom:4px"><strong>${isHot ? 'heat' : 'cold'} health advisory</strong> <em>— ${source}</em></div>
+        <div style="display:flex;align-items:flex-start;gap:8px">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><path d="M22 12A10 10 0 1 1 12 2a10 10 0 0 1 10 10z"/><path d="M12 6v6"/><path d="M12 18h.01"/></svg>
+          <span style="font-size:0.72rem;color:${textColor};line-height:1.5">${(tips[idx] || '')}</span>
+        </div>
+      </div>`;
+    }
+
+    async function fetchNWSAlerts(city) {
+      if (city.country !== 'USA') return [];
+      try {
+        const url = `https://api.weather.gov/alerts/active?point=${city.lat},${city.lon}&limit=5`;
+        const data = await cachedFetch(`nws_${city.lat}_${city.lon}`, url, CACHE_TTL);
+        if (!data || !data.features || !data.features.length) return [];
+        return data.features
+          .map(f => f.properties)
+          .filter(p => p && p.event && /\b(heat|cold|wind.?chill|freeze|frost|hypothermia)\b/i.test(p.event))
+          .map(p => ({ event: p.event, severity: p.severity, headline: p.headline, sender: p.senderName }));
+      } catch { return []; }
+    }
+
+    async function loadHot() {
+      const grid = document.getElementById('hotGrid');
+      const loc = await APP.getUserLocation();
+      let pool = APP.CITIES;
+      if (loc && loc.lat) {
+        const withDist = APP.CITIES.map(c => ({ ...c, dist: APP.distance(loc.lat, loc.lon, c.lat, c.lon) }));
+        withDist.sort((a, b) => a.dist - b.dist);
+        pool = withDist.slice(0, 60);
+      }
+      async function fc(city) {
+        const key = 'fc_' + city.name.replace(/\s+/g, '_');
+        try { var d = await cachedFetch(key, `${APP.FORECAST_API}?latitude=${city.lat}&longitude=${city.lon}&daily=temperature_2m_max&timezone=auto&forecast_days=1`, CACHE_TTL); if (d && d.daily?.temperature_2m_max?.[0] != null) return d.daily.temperature_2m_max[0]; } catch(e) {}
+        try { var d = await cachedFetch(key + '_c', `${APP.FORECAST_API}?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m&timezone=auto`, CACHE_TTL); if (d && d.current?.temperature_2m != null) return d.current.temperature_2m; } catch(e) {}
+        return null;
+      }
+      try {
+        const settled = await Promise.allSettled(pool.slice(0, 20).map(c => fc(c).then(t => t != null ? { ...c, temp: t } : null)));
+        const withTemps = settled.filter(r => r.status === 'fulfilled' && r.value != null).map(r => r.value);
+        withTemps.sort((a, b) => b.temp - a.temp);
+        const byCountry = {};
+        withTemps.forEach(c => {
+          if (!byCountry[c.country] || c.temp > byCountry[c.country].temp) byCountry[c.country] = c;
+        });
+        hotCities = Object.values(byCountry).sort((a, b) => b.temp - a.temp).slice(0, 5);
+      } catch(e) {
+        console.warn('loadHot error:', e);
+        hotCities = [];
+      }
+
+      var defaultCity = APP.CITIES[0];
+      if (!hotCities.length) {
+        grid.innerHTML = '<div style="color:#666;text-align:center;padding:20px;grid-column:1/-1;font-size:0.8rem">⚠ Loading forecast data...</div>';
+        loadTimeline(defaultCity).catch(function(e) { console.warn('Timeline error:', e); });
+        loadBeach(defaultCity);
+        return;
+      }
+
+      grid.innerHTML = hotCities.map((c, i) => {
+        const r = Math.max(80, 220 - i * 30);
+        const g = Math.max(8, 40 - i * 8);
+        const b = 20;
+        const a = 0.5 - i * 0.08;
+        return `
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;cursor:pointer" onclick="loadTimeline(hotCities[${i}]);loadBeach(hotCities[${i}])">
+            <div style="width:100%;border-radius:9999px;padding:14px 0;text-align:center;background:rgba(${r},${g},${b},${a});-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.1)">
+              <div style="color:white;font-weight:800;font-size:1.25rem">${Math.round(c.temp)}°</div>
+            </div>
+            <div style="color:#999;font-size:10px;text-align:center;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%">${c.country}</div>
+          </div>`;
+      }).join('');
+
+      loadTimeline(hotCities[0]).catch(function(e) { console.warn('Timeline error:', e); });
+      loadBeach(hotCities[0]);
+    }
+
+    async function loadTimeline(city) {
+      try {
+      document.querySelectorAll('#hotGrid > div').forEach(el => {
+        const label = el.querySelector('div:last-child')?.textContent?.trim().toLowerCase();
+        const pill = el.querySelector('div:first-child');
+        if (label === city.country.toLowerCase()) {
+          pill.style.outline = '2px solid #52b788';
+          pill.style.outlineOffset = '2px';
+        } else {
+          pill.style.outline = 'none';
+        }
+      });
+      const now = new Date();
+      const cur = now.getFullYear();
+      const years = [];
+      for (let y = cur; y >= cur - 4; y--) years.push(y);
+
+      let yearlyData = [];
+      const CACHE_6H = CACHE_TTL;
+      async function histFetch(y) {
+        const start = `${y}-01-01`;
+        const end = y === cur ? `${cur}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}` : `${y}-12-31`;
+        const key = `hist_${city.name}_${y}`;
+        try { return await cachedFetch(key, `${APP.HISTORICAL_API}?latitude=${city.lat}&longitude=${city.lon}&start_date=${start}&end_date=${end}&daily=temperature_2m_max&timezone=auto`, CACHE_6H); } catch(e) {}
+        try { return await cachedFetch(key + '_b', `${APP.HISTORICAL_API}?latitude=${city.lat}&longitude=${city.lon}&start_date=${start}&end_date=${end}&daily=temperature_2m_max,temperature_2m_min&timezone=auto`, CACHE_6H); } catch(e) {}
+        return null;
+      }
+      const settled = await Promise.allSettled(years.map(y => histFetch(y)));
+      yearlyData = settled.filter(r => r.status === 'fulfilled').map((r, i) => {
+        const d = r.value;
+        if (!d || !d.daily || !d.daily.temperature_2m_max) return null;
+        const temps = d.daily.temperature_2m_max.filter(v => v !== null);
+        if (!temps.length) return null;
+        return {
+          year: years[i],
+          max: Math.max(...temps),
+          avg: temps.reduce((a, b) => a + b, 0) / temps.length,
+        };
+      }).filter(Boolean);
+
+      const disasters = await fetchDisasters(city.country, yearlyData);
+      const section = document.getElementById('timelineSection');
+      const curTemp = yearlyData && yearlyData.length ? yearlyData[0].max : null;
+      const advisoryKey = 'adv_v4_' + city.name.replace(/\s+/g, '_');
+      let advisoryHtml = loadCache(advisoryKey);
+      if (!advisoryHtml) {
+        const nwsAlerts = await fetchNWSAlerts(city);
+        if (nwsAlerts.length) {
+          advisoryHtml = nwsAlerts.map(a => {
+            const isHeat = /\b(heat|hot)\b/i.test(a.event);
+            const color = isHeat ? '#dc2626' : '#3b82f6';
+            const nwsTextColor = isHeat ? '#dc2626' : '#333';
+            return `<div style="margin-top:10px;padding:10px 12px;background:rgba(74,222,128,0.15);border-radius:8px">
+              <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;color:rgba(0,0,0,0.5);margin-bottom:4px"><strong>${a.event}</strong> <em>— ${a.severity} — US National Weather Service — ${a.sender || 'NWS'}</em></div>
+              <div style="display:flex;align-items:flex-start;gap:8px">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><path d="M22 12A10 10 0 1 1 12 2a10 10 0 0 1 10 10z"/><path d="M12 6v6"/><path d="M12 18h.01"/></svg>
+                <span style="font-size:0.72rem;color:${nwsTextColor};line-height:1.5">${a.headline}</span>
+              </div>
+            </div>`;
+          }).join('');
+        } else {
+          advisoryHtml = loadHealthTips(curTemp);
+        }
+        saveCache(advisoryKey, advisoryHtml);
+      }
+      const newsItems = await loadNews(city);
+      let newsHtml = '';
+      if (newsItems.length) {
+        newsHtml = '<div style="margin-top:10px">' + newsItems.map((n, i) => `
+          <a href="${n.link}" target="_blank" rel="noopener" style="display:block;text-decoration:none;margin-top:${i>0?'6':'0'}px;padding:10px 12px;background:rgba(255,255,255,0.9);border-radius:8px">
+            <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;color:rgba(0,0,0,0.5);margin-bottom:3px">climate news — ${n.source || 'Google News'}</div>
+            <div style="font-size:0.72rem;color:#333;line-height:1.4">${n.title}</div>
+          </a>`).join('') + '</div>';
+      }
+      section.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:12px;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px">
+          <span style="color:#52b788;font-weight:700">${city.country}</span>
+          <span style="color:#666;font-size:0.6rem">5‑year temperature timeline</span>
+        </div>
+        <div style="position:relative;display:flex;width:100%;margin-top:12px;padding:4px 0">${yearlyData.map((d, i) => {
+          const isFirst = i === 0;
+          const barColor = d.max >= 45 ? '#dc2626' : d.max >= 43 ? '#ea580c' : d.max >= 40 ? '#d97706' : '#22c55e';
+          return `
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative">
+            <div style="font-size:0.75rem;font-weight:700;color:${isFirst ? '#52b788' : '#666'}">${d.year}</div>
+            <svg width="14" height="14" viewBox="0 0 24 24" style="position:relative;z-index:1"><circle cx="12" cy="12" r="6" fill="${barColor}" stroke="none"/></svg>
+            <div style="font-size:0.85rem;font-weight:800;color:${barColor}">${Math.round(d.max)}°</div>
+          </div>`;}).join('')}
+          <div style="position:absolute;top:35px;left:8%;right:8%;height:1px;background:rgba(220,38,38,0.3);pointer-events:none"></div>
+        </div>
+        ${disasters.length ? `<div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">${disasters.map(d => `
+          <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.9);border-radius:8px;padding:10px 12px">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><path d="M12 2L2 22h20L12 2z"/><line x1="12" y1="10" x2="12" y2="14"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            <div style="flex:1;min-width:0">
+              <div style="color:#333;font-weight:600;font-size:0.75rem;line-height:1.3">${d.name}</div>
+              <div style="display:flex;gap:6px;margin-top:2px">
+                <span style="color:#888;font-size:0.6rem">${d.type}</span>
+                <span style="color:#aaa;font-size:0.6rem">${d.date}</span>
+              </div>
+            </div>
+          </div>`).join('')}</div>` : ''}
+        ${advisoryHtml}
+        ${newsHtml || ''}`;
+      } catch(e) {
+        console.warn('loadTimeline error:', e);
+      }
+    }
+
+    async function fetchDisasters(country, data) {
+      try {
+        if (!data || !data.length) return [];
+        const events = [];
+        const cur = data[0];
+        if (!cur) return [];
+        if (cur.max >= 47) events.push({ name: `Extreme heatwave — ${Math.round(cur.max)}°C recorded`, type: 'Extreme Temperature', date: String(cur.year) });
+        const avg5 = data.reduce((s, d) => s + d.avg, 0) / data.length;
+        if (data.length >= 3 && data.slice(0, 3).every(d => d.max >= 43)) events.push({ name: '3 consecutive years above 43°C — prolonged extreme heat', type: 'Extreme Temperature', date: `${data[2].year}–${data[0].year}` });
+        const slope = data.length >= 2 ? (data[0].avg - data[data.length - 1].avg) / (data.length - 1) : 0;
+        if (slope > 1.5) events.push({ name: `Warming trend accelerating — avg rising ${slope.toFixed(1)}°C/year`, type: 'Climate Trend', date: `${data[data.length-1].year}–${data[0].year}` });
+        if (cur.avg >= avg5 + 3) events.push({ name: `Current avg ${Math.round(cur.avg)}°C is ${Math.round(cur.avg - avg5)}°C above 5-year average`, type: 'Temperature Anomaly', date: String(cur.year) });
+        if (events.length < 3 && data.some(d => d.max >= 45 && d.max < 47)) events.push({ name: `Annual max exceeded 45°C — critical heat threshold breached`, type: 'Extreme Temperature', date: String(data.find(d => d.max >= 45 && d.max < 47).year) });
+        if (events.length < 3 && data.some(d => d.avg >= avg5 + 1.5)) events.push({ name: `Above-average annual temperature — consistent warming signal`, type: 'Climate Trend', date: String(data.find(d => d.avg >= avg5 + 1.5).year) });
+        return events.slice(0, 3);
+      } catch(e) {
+        console.warn('fetchDisasters error:', e);
+        return [];
+      }
+    }
+
+    async function loadNews(city) {
+      try {
+        const countries = [city.country];
+        const nearby = APP.CITIES.map(c => ({ ...c, dist: APP.distance(city.lat, city.lon, c.lat, c.lon) })).sort((a, b) => a.dist - b.dist);
+        nearby.forEach(c => { if (c.country !== city.country && !countries.includes(c.country)) countries.push(c.country); });
+        let news = [];
+        for (const c of countries) {
+          if (news.length >= 2) break;
+          try {
+            const key = 'news_v2_' + c.replace(/\s+/g, '_');
+            let items = loadCache(key);
+            if (!items) {
+              const res = await fetch('/news?q=climate+' + encodeURIComponent(c));
+              if (!res.ok) throw new Error('HTTP '+res.status);
+              items = await res.json();
+              saveCache(key, items);
+            }
+            if (items && items.length) {
+              items.slice(0, 2 - news.length).forEach(item => { if (item.title && !news.some(n => n.title === item.title)) news.push(item); });
+            }
+          } catch {}
+        }
+        return news;
+      } catch { return []; }
+    }
+
+    async function fetchSiteData() {
+      let data = loadCache('site_data_v3');
+      if (data) return data;
+      const [vres, ares] = await Promise.all([
+        fetch('https://theclimateline.pages.dev/js/channel-videos.js'),
+        fetch('https://theclimateline.pages.dev/js/articles.js')
+      ]);
+      const vtext = await vres.text();
+      const atext = await ares.text();
+      const vmatch = vtext.match(/const\s+channelVideos\s*=\s*(\[[\s\S]*?\]);/);
+      const amatch = atext.match(/const\s+siteArticles\s*=\s*(\[[\s\S]*?\]);/);
+      if (!vmatch || !amatch) throw new Error('Parse failed');
+      data = {
+        videos: new Function('return ' + vmatch[1] + ';')(),
+        articles: new Function('return ' + amatch[1] + ';')()
+      };
+      saveCache('site_data_v3', data);
+      return data;
+    }
+
+    var vrVideos = [];
+
+    function openVideoRadio(id, title) {
+      document.getElementById('vrTitle').textContent = title;
+      playVrTrack(id);
+      renderVrPlaylist(id);
+      document.getElementById('videoRadio').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeVideoRadio() {
+      document.getElementById('videoRadio').classList.remove('open');
+      document.getElementById('vrPlayer').innerHTML = '';
+      document.body.style.overflow = '';
+    }
+
+    function playVrTrack(id) {
+      var allIds = vrVideos.map(function(v) { return v.id; }).join(',');
+      document.getElementById('vrPlayer').innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&rel=0&loop=1&playlist=' + allIds + '" allow="autoplay; encrypted-media" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:none"></iframe>';
+      var v = vrVideos.find(function(x) { return x.id === id; });
+      if (v) document.getElementById('vrTitle').textContent = v.title;
+      var tracks = document.querySelectorAll('.vr-track');
+      for (var i = 0; i < tracks.length; i++) {
+        tracks[i].classList.toggle('active', tracks[i].getAttribute('data-id') === id);
+      }
+    }
+
+    function renderVrPlaylist(activeId) {
+      var el = document.getElementById('vrPlaylist');
+      el.innerHTML = vrVideos.map(function(v, i) {
+        return '<div class="vr-track' + (v.id === activeId ? ' active' : '') + '" data-id="' + v.id + '" onclick="playVrTrack(\'' + v.id + '\')">'
+          + '<img class="vr-track-thumb" src="https://img.youtube.com/vi/' + v.id + '/mqdefault.jpg" alt="" loading="lazy">'
+          + '<div class="vr-track-info">'
+          + '<div class="vr-track-title">' + v.title + '</div>'
+          + '<div class="vr-track-num">Track ' + (i + 1) + '</div>'
+          + '</div>'
+          + '<div class="vr-track-play"></div>'
+          + '</div>';
+      }).join('');
+    }
+
+    async function loadYouTube() {
+      const el = document.getElementById('youtubeSection');
+      el.style.display = '';
+      try {
+        const data = await fetchSiteData();
+        if (!data || !data.videos || !data.videos.length) { el.style.display = 'none'; return; }
+        vrVideos = data.videos;
+        el.innerHTML = '<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px">' + vrVideos.slice(0, 4).map(function(v) {
+          return '<div onclick="openVideoRadio(\'' + v.id + '\',\'' + v.title.replace(/'/g, "\\'") + '\')" style="flex:1;min-width:0;cursor:pointer">'
+            + '<img src="https://img.youtube.com/vi/' + v.id + '/mqdefault.jpg" style="width:100%;aspect-ratio:16/9;border-radius:8px;object-fit:cover;border:2px solid rgba(255,255,255,0.15)" loading="lazy">'
+            + '</div>';
+        }).join('') + '</div>';
+      } catch(e) { console.warn('loadYouTube:', e); el.style.display = 'none'; }
+    }
+
+    async function loadUpdates() {
+      const el = document.getElementById('updatesSection');
+      el.style.display = '';
+      try {
+        const data = await fetchSiteData();
+        if (!data || !data.articles || !data.articles.length) { el.style.display = 'none'; return; }
+        el.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px">${data.articles.slice(0, 5).map(a => `
+            <a href="https://theclimateline.pages.dev/#${a.slug}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;text-decoration:none;padding:8px 10px;background:rgba(255,255,255,0.9);border-radius:8px">
+              <img src="https://img.youtube.com/vi/${a.videoId}/default.jpg" style="width:48px;height:36px;border-radius:4px;object-fit:cover;flex-shrink:0" loading="lazy">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:0.7rem;color:#333;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.title}</div>
+                <div style="font-size:0.55rem;color:#888;margin-top:2px">${a.date || ''}</div>
+              </div>
+            </a>`).join('')}</div>`;
+      } catch(e) { console.warn('loadUpdates:', e); el.style.display = 'none'; }
+    }
+
+    async function loadBeach(city) {
+      const el = document.getElementById('beachSection');
+      el.style.display = '';
+      try {
+        const countryCities = APP.CITIES.filter(c => c.country === city.country);
+        if (!countryCities.length) { el.style.display = 'none'; return; }
+        let found = null;
+        for (const c of countryCities) {
+          const key = 'beach_' + c.name.replace(/\s+/g, '_');
+          const url = `https://marine-api.open-meteo.com/v1/marine?latitude=${c.lat}&longitude=${c.lon}&current=wave_height,wave_direction,swell_wave_height,wind_wave_height&daily=wave_height_max&forecast_days=1&timezone=auto`;
+          try {
+            var data = await cachedFetch(key, url, CACHE_TTL);
+            if (data && data.current && data.current.wave_height != null) {
+              found = { name: c.name, data };
+              break;
+            }
+          } catch(e) {}
+        }
+        if (!found) {
+          const msgs = [
+            'No coastline nearby, but the nearest beach is always worth the journey.',
+            'Every great adventure starts with a trip to the coast — pack your bags!',
+            'No beach data for this region — time to discover a new shoreline.',
+            'The ocean is calling somewhere — find your nearest beach and go.',
+            'Even landlocked countries have lakes and rivers waiting to be explored.',
+          ];
+          el.innerHTML = `<div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;color:rgba(0,0,0,0.5);margin-bottom:10px;text-align:center">beach</div>
+            <div style="text-align:center;padding:8px 0">
+              <div style="font-size:0.75rem;color:#444;line-height:1.5">${msgs[((city.country.length * 7 + 13) >>> 0) % msgs.length]}</div>
+            </div>`;
+          return;
+        }
+        const h = found.data.current.wave_height;
+        const swell = found.data.current.swell_wave_height || 0;
+        let status, color;
+        if (h < 0.5) { status = 'Excellent'; color = '#22c55e'; }
+        else if (h < 1.0) { status = 'Good'; color = '#52b788'; }
+        else if (h < 2.0) { status = 'Moderate'; color = '#d97706'; }
+        else { status = 'Rough'; color = '#dc2626'; }
+        el.innerHTML = `<div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;color:rgba(0,0,0,0.5);margin-bottom:10px;text-align:center">beach — ${city.country}</div>
+          <div style="display:flex;gap:12px;justify-content:center;align-items:center">
+            <div style="text-align:center">
+              <div style="font-size:1.2rem;font-weight:800;color:${color}">${h.toFixed(1)}m</div>
+              <div style="font-size:0.55rem;color:#555;margin-top:2px">waves</div>
+            </div>
+            <div style="width:1px;height:30px;background:rgba(0,0,0,0.1)"></div>
+            <div style="text-align:center">
+              <div style="font-size:1.2rem;font-weight:800;color:#555">${swell.toFixed(1)}m</div>
+              <div style="font-size:0.55rem;color:#555;margin-top:2px">swell</div>
+            </div>
+            <div style="width:1px;height:30px;background:rgba(0,0,0,0.1)"></div>
+            <div style="text-align:center">
+              <div style="font-size:0.9rem;font-weight:700;color:${color}">${status}</div>
+              <div style="font-size:0.55rem;color:#555;margin-top:2px">condition</div>
+            </div>
+          </div>`;
+      } catch(e) { console.warn('loadBeach:', e); el.style.display = 'none'; }
+    }
+
+    loadHot();
+    loadYouTube();
+    loadUpdates();
+  </script>
+
+  <!-- Video Radio Modal -->
+  <style>
+  .video-radio{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.3s;pointer-events:none}
+  .video-radio.open{opacity:1;pointer-events:auto}
+  .video-radio-bd{position:absolute;inset:0;background:rgba(0,0,0,0.88);cursor:pointer}
+  .video-radio-c{position:relative;width:92%;max-width:800px;max-height:90vh;display:flex;flex-direction:column;background:#111;border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.6);transform:scale(0.95);transition:transform 0.3s}
+  .video-radio.open .video-radio-c{transform:scale(1)}
+  .video-radio-h{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#1a1a1a;flex-shrink:0}
+  .video-radio-t{flex:1;font-size:0.85rem;font-weight:600;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .radio-dot{display:inline-flex;align-items:center;gap:5px;font-size:0.7rem;color:#4caf50;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+  .radio-dot::before{content:'';width:8px;height:8px;border-radius:50%;background:#4caf50;animation:rp 1.5s ease-in-out infinite}
+  @keyframes rp{0%,100%{opacity:1}50%{opacity:0.3}}
+  .vr-close{width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:none;border-radius:50%;background:transparent;color:#777;font-size:1.3rem;cursor:pointer;transition:all 0.2s}
+  .vr-close:hover{background:rgba(255,255,255,0.1);color:#fff}
+  .video-radio-p{position:relative;width:100%;aspect-ratio:16/9;background:#000;flex-shrink:0}
+  .video-radio-p iframe{position:absolute;inset:0;width:100%;height:100%;border:none}
+  .video-radio-pl{flex:1;overflow-y:auto;background:#161616;padding:6px;min-height:0}
+  .video-radio-pl::-webkit-scrollbar{width:4px}
+  .video-radio-pl::-webkit-scrollbar-track{background:transparent}
+  .video-radio-pl::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
+  .vr-track{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background 0.2s}
+  .vr-track:hover{background:rgba(255,255,255,0.06)}
+  .vr-track.active{background:rgba(76,175,80,0.15)}
+  .vr-track-thumb{width:64px;height:36px;border-radius:5px;object-fit:cover;flex-shrink:0;border:1px solid rgba(255,255,255,0.08)}
+  .vr-track-info{flex:1;min-width:0}
+  .vr-track-title{font-size:0.8rem;font-weight:500;color:#ccc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .vr-track.active .vr-track-title{color:#4caf50}
+  .vr-track-num{font-size:0.65rem;color:#666}
+  .vr-track-play{flex-shrink:0;opacity:0;width:8px;height:8px;border-radius:2px;background:#fff;transition:opacity 0.2s}
+  .vr-track.active .vr-track-play,
+  .vr-track:hover .vr-track-play{opacity:1}
+  </style>
+  <div class="video-radio" id="videoRadio">
+    <div class="video-radio-bd" onclick="closeVideoRadio()"></div>
+    <div class="video-radio-c">
+      <div class="video-radio-h">
+        <span class="video-radio-t" id="vrTitle"></span>
+        <span class="radio-dot">Live</span>
+        <button class="vr-close" onclick="closeVideoRadio()">&times;</button>
+      </div>
+      <div class="video-radio-p" id="vrPlayer"></div>
+      <div class="video-radio-pl" id="vrPlaylist"></div>
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://theclimateline.pages.dev/sitemap.xml
