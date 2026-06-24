@@ -1,1 +1,3 @@
 *.ps1
+tokens.txt
+scripts/__pycache__/
